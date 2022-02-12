@@ -16,7 +16,7 @@ extension CardItems {
         return NSFetchRequest<CardItems>(entityName: "CardItems")
     }
 
-    @NSManaged public var id: Int16
+    @NSManaged public var stringUrl: String
     @NSManaged public var image: Data?
 
 }
