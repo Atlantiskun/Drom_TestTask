@@ -22,8 +22,7 @@ class MainPageViewController: UIViewController {
         "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Actitis_hypoleucos_-_Laem_Pak_Bia.jpg/1024px-Actitis_hypoleucos_-_Laem_Pak_Bia.jpg",
         "https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Pitta_sordida_-_Sri_Phang_Nga.jpg/1024px-Pitta_sordida_-_Sri_Phang_Nga.jpg"
     ]
-    private var uploaded: [String] = []
-    private var needToDownload: [String] = []
+    var needToDownload: [String] = []
     var numberToShow = 0
     var listOfImages: [UIImage?] = [] {
         didSet {
@@ -43,7 +42,7 @@ class MainPageViewController: UIViewController {
         }
     }
     
-    private let collectionView: UICollectionView = {
+    let collectionView: UICollectionView = {
         let collectionView = UICollectionView(frame: .zero,
                                               collectionViewLayout: UICollectionViewFlowLayout()
         )
@@ -54,7 +53,7 @@ class MainPageViewController: UIViewController {
     }()
     
     /// Label for empty collectionView with instruction
-    private let emptyLabel: UILabel = {
+    let emptyLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 22, weight: .medium)
         label.numberOfLines = 0
@@ -65,7 +64,7 @@ class MainPageViewController: UIViewController {
     }()
     
     /// Pull to refresh control
-    private let refreshControl = UIRefreshControl()
+    let refreshControl = UIRefreshControl()
     
     /// Get CoreData context
     static var persistentContainer: NSPersistentContainer = {
@@ -84,13 +83,12 @@ class MainPageViewController: UIViewController {
     var cardsFromCoredata: [CardItems] = []
     
     /// Internet Conection monitor
-    var doesWeHaveInternetConection = true
+    var weHaveInternetConection = true
     let monitor = NWPathMonitor()
     let queue = DispatchQueue(label: "InternetConectionMonitor", qos: .background)
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Main Page"
         collectionView.delegate = self
         collectionView.dataSource = self
         view.addSubview(collectionView)
@@ -108,20 +106,17 @@ class MainPageViewController: UIViewController {
                 return
             }
             if path.status == .satisfied {
-                strongSelf.doesWeHaveInternetConection = true
+                strongSelf.weHaveInternetConection = true
+                strongSelf.numberToShow = strongSelf.needToDownload.count
             } else {
-                strongSelf.doesWeHaveInternetConection = false
+                strongSelf.weHaveInternetConection = false
+                strongSelf.numberToShow = strongSelf.cardsFromCoredata.count
             }
         }
         monitor.start(queue: queue)
         monitor.cancel()
         
         getAllCards()
-        if doesWeHaveInternetConection {
-            numberToShow = needToDownload.count
-        } else {
-            numberToShow = cardsFromCoredata.count
-        }
         collectionView.reloadData()
     }
     
@@ -129,23 +124,11 @@ class MainPageViewController: UIViewController {
         super.viewDidLayoutSubviews()
         collectionView.frame = view.bounds
         collectionView.backgroundColor = .gray
+        title = "Some birds from Wikipedia day photo"
         emptyLabel.frame = CGRect(x: collectionView.frame.width/2 - (collectionView.frame.width/6) - 10,
                                   y: collectionView.frame.height/2,
                                   width: collectionView.frame.width/3 + 20,
                                   height: 60)
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        
-        guard let nav = self.navigationController else {
-            return
-        }
-        nav.isNavigationBarHidden = false
-    }
-    
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
     }
     
     func getImage(from url: String) -> UIImage? {
@@ -167,19 +150,16 @@ class MainPageViewController: UIViewController {
         needToDownload = listOfUrls
         numberToShow = needToDownload.count
         
-        if doesWeHaveInternetConection {
-            uploaded = []
+        if weHaveInternetConection {
             clearCoreData()
         }
-        
-        listOfImages = []
         getAllCards()
         collectionView.reloadData()
         refreshControl.endRefreshing()
     }
 }
 
-// MARK: - CollectionView stuff
+// MARK: - CollectionView stack
 extension MainPageViewController: UICollectionViewDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return numberToShow
@@ -187,7 +167,7 @@ extension MainPageViewController: UICollectionViewDelegate, UICollectionViewData
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: CardItemCell.identifier, for: indexPath) as! CardItemCell
-        if listOfImages.count < numberToShow && doesWeHaveInternetConection {
+        if listOfImages.count < numberToShow && weHaveInternetConection {
             guard let image = getImage(from: needToDownload[indexPath.row]),
                   let imageData = image.pngData() else {
                 print("Failed to get image")
@@ -197,8 +177,7 @@ extension MainPageViewController: UICollectionViewDelegate, UICollectionViewData
                 createNewItem(with: imageData, andUrl: needToDownload[indexPath.row])
                 getAllCards()
             }
-
-            uploaded.append(needToDownload[indexPath.row])
+            
             cell.configure(with: image)
         } else if listOfImages.count == numberToShow {
             guard let image = listOfImages[indexPath.row] else {
@@ -247,7 +226,7 @@ extension MainPageViewController: UICollectionViewDelegate, UICollectionViewData
     
 }
 
-// MARK: - Core Data stuff
+// MARK: - Core Data stack
 extension MainPageViewController {
     func getAllCards() {
         guard let models = try? context.fetch(CardItems.fetchRequest()) as? [CardItems] else {
@@ -277,19 +256,6 @@ extension MainPageViewController {
         
         guard (try? context.save()) != nil else {
             print("Faield to save newItem to CoreData")
-            return
-        }
-    }
-    
-    func deleteItem(at position: Int) {
-        guard let models = try? context.fetch(CardItems.fetchRequest()) as? [CardItems] else {
-            print("Failed to load data from CoreData")
-            return
-        }
-        let item = models[position]
-        context.delete(item)
-        guard (try? context.save()) != nil else {
-            print("Faield to delete item from CoreData")
             return
         }
     }

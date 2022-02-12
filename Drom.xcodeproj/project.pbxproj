@@ -87,6 +87,8 @@
 		0A49142A27B4F2C10008F393 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				0A49143327B611520008F393 /* CardItems+CoreDataClass.swift */,
+				0A49143427B611520008F393 /* CardItems+CoreDataProperties.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -105,8 +107,6 @@
 				0A49141227B4EFB80008F393 /* AppDelegate.swift */,
 				0A49141427B4EFB80008F393 /* SceneDelegate.swift */,
 				0A49141B27B4EFB80008F393 /* Drom.xcdatamodeld */,
-				0A49143327B611520008F393 /* CardItems+CoreDataClass.swift */,
-				0A49143427B611520008F393 /* CardItems+CoreDataProperties.swift */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
